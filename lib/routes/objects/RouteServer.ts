@@ -41,7 +41,7 @@ export default class RouteServer {
 
         if (!prefix.startsWith("/")) prefix = `/${prefix}`;
 
-        this.#endpointsPrefix = prefix === "/" ? prefix : prefix + "/";
+        this.#endpointsPrefix = prefix;
 
         return this;
     }

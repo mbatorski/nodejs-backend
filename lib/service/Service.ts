@@ -186,14 +186,18 @@ export class Service<T extends object = any> {
         return object;
     }
 
-    _update(identifier: string | number, object: T): T {
-        Db.update(
+    async _update(identifier: string | number, object: T): Promise<T> {
+        const next = { ...object } as T;
+
+        await Db.update(
             this._table,
-            this.#updatePrepare(object) as Record<string, string | number>,
+            this.#updatePrepare(next) as Record<string, string | number>,
             { where: { [this.#settings.identifier]: identifier } }
         );
 
-        return { ...object } as T;
+        this.#cache.set(identifier, next);
+
+        return next;
     }
 
     _set(id: any, object: T) {
