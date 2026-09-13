@@ -15,6 +15,7 @@ import { ErrorPrefix, SuccessPrefix, Colors } from "../constants";
 import RouteParamsValidator from "./RouteParamsValidator";
 import RouteDataParser from "./RouteDataParser";
 import JsonWebToken from "./JsonWebToken";
+import { log as logRequest } from "../utils/Logger";
 import Response from "../interfaces/Response";
 import Route from "../interfaces/Route";
 import ParamRoute from "../interfaces/ParamRoute";
@@ -190,6 +191,40 @@ export default class RouteServer {
                     ` on ` +
                     `${Colors.Green}${endpoint}`
             );
+
+            let responseBody: any;
+
+            const originalJson = res.json.bind(res);
+            const originalSend = res.send.bind(res);
+
+            res.json = (body: any) => {
+                responseBody = body;
+                return originalJson(body);
+            };
+
+            res.send = (body: any) => {
+                if (responseBody === undefined) responseBody = body;
+                return originalSend(body);
+            };
+
+            res.on("finish", () => {
+                const error =
+                    responseBody && typeof responseBody === "object" && "error" in responseBody
+                        ? responseBody.error
+                        : res.statusCode >= 400
+                        ? responseBody
+                        : undefined;
+
+                logRequest({
+                    url: req.originalUrl,
+                    method: route._method.toUpperCase(),
+                    payload: req.body,
+                    datetime: new Date().toISOString(),
+                    responseCode: res.statusCode,
+                    response: responseBody,
+                    error,
+                });
+            });
 
             const processBaseRequest = (requestBody: any, files: any = {}) => {
                 req.body = requestBody;

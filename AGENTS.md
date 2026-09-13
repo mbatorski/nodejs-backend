@@ -45,3 +45,8 @@ await Users.load();
 - App code: `src/` (routes, services, utils).
 - Framework: `lib/` — change only when the task requires it.
 - Do not invent layers (controllers, repositories) beyond routes + services.
+
+## Debugging routes
+
+- Every request/response is logged to `./assets/private/logs/`, one file per day (`DD.MM.YYYY.log`), one JSON line per request (`url`, `method`, `payload`, `responseCode`, `response`, `error`, `datetime`).
+- When debugging route behaviour (payloads received, responses sent), check that directory instead of guessing.
