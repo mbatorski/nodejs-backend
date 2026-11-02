@@ -1,5 +1,6 @@
 import type { Request, Response as ExpressResponse, NextFunction } from "express";
 import type { Files } from "formidable";
+import { AsyncService } from "../../service/AsyncService";
 import { Service } from "../../service/Service";
 import type { JsonWebTokenOptions, MultipartFieldOptions, RequestMethod, RouteSettings } from "../types";
 import Response from "./Response";
@@ -19,6 +20,8 @@ export type RouteFunction = (
     next: NextFunction
 ) => void;
 
+export type ServiceObjectFetch = Service | AsyncService;
+
 export default class Route {
     _prefights: ((req: Request, res: ExpressResponse, next: NextFunction) => any)[] = [];
     _body: Record<string, RouteSettings> = {};
@@ -27,7 +30,7 @@ export default class Route {
     _jwtOptions: JsonWebTokenOptions = { verify: false, getData: false };
     _multipartOptions: Record<string, MultipartFieldOptions> | null = null;
     _bodyKey: string | null = null;
-    _serviceObjectFetch: Service | null = null;
+    _serviceObjectFetch: ServiceObjectFetch | null = null;
     _executor!: RouteFunction;
 
     setJWT(jwtOptions: JsonWebTokenOptions) {
@@ -60,7 +63,7 @@ export default class Route {
         return this;
     }
 
-    setServiceObjectFetch(service: Service) {
+    setServiceObjectFetch(service: ServiceObjectFetch) {
         this._serviceObjectFetch = service;
         return this;
     }

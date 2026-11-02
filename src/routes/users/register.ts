@@ -14,7 +14,7 @@ export default new Route()
 .post(async function(res, body) {
     const { username, password, firstname, lastname } = body;
 
-    if (Users.getByUsername(username)) return res.error(409, "User already exists");
+    if (await Users.getByUsername(username)) return res.error(409, "User already exists");
 
     const user = await Users.create({
         username,

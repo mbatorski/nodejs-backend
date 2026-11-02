@@ -10,7 +10,7 @@ TypeScript Express backend with file-based routes (`src/routes` → `/api/...`),
 | `src/routes/` | One file = one endpoint |
 | `src/services/` | DB / domain logic (singletons) |
 | `src/utils/` | Shared helpers |
-| `lib/` | Framework (routes, DB, `Service`) — change only when needed |
+| `lib/` | Framework (routes, DB, `Service` / `AsyncService`) — change only when needed |
 
 ## Setup
 
@@ -35,7 +35,6 @@ import path from "path";
 import dotenv from "dotenv";
 import Db from "./lib/database/Database";
 import RouteServer from "./lib/routes/objects/RouteServer";
-import Users from "./src/services/Users";
 
 process.env.TZ = "Europe/Warsaw";
 
@@ -46,7 +45,8 @@ const server = new RouteServer();
 Db.setKeepAliveTable("alive");
 
 Db.onConnect(async () => {
-    await Users.load();
+    // Cached `Service` instances need `await X.load()` here.
+    // `AsyncService` hits the DB per call — no load.
 
     server.static("/assets", "assets");
     server.setEndpointPrefix("/api");
@@ -56,18 +56,16 @@ Db.onConnect(async () => {
 });
 ```
 
-Load every DB-backed service inside `Db.onConnect` before starting the server.
-
 ---
 
 ## Service (`src/services/`)
 
-One type + class per file, extend `Service<T>`, export a singleton. Keep HTTP out of services.
+One type + class per file, extend `Service<T>` (cached) or `AsyncService<T>` (DB per call), export a singleton. Keep HTTP out of services. With `AsyncService`, always `await` gets/updates.
 
 ```ts
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Service } from "../../lib/service/Service";
+import { AsyncService } from "../../lib/service/AsyncService";
 
 type User = {
     id: number;
@@ -79,7 +77,7 @@ type User = {
     updatedAt: number;
 };
 
-class UsersService extends Service<User> {
+class UsersService extends AsyncService<User> {
     #PASSWORD_HASH_SALT_ROUNDS = 12;
 
     constructor() {
@@ -98,8 +96,8 @@ class UsersService extends Service<User> {
         return await bcrypt.hash(password, this.#PASSWORD_HASH_SALT_ROUNDS);
     }
 
-    getByUsername(username: string) {
-        return this._values().find((e) => e.username === username);
+    async getByUsername(username: string) {
+        return await this._find({ username });
     }
 
     async create(data: {
@@ -111,7 +109,7 @@ class UsersService extends Service<User> {
         const id = await this._getNextId();
         data.password = await this.getHashedPassword(data.password);
 
-        return this._insert(id, {
+        return await this._insert(id, {
             ...data,
             id,
             createdAt: new Date().getTime(),
@@ -157,7 +155,7 @@ export default new Route()
 .post(async function(res, body) {
     const { username, password, firstname, lastname } = body;
 
-    if (Users.getByUsername(username)) return res.error(409, "User already exists");
+    if (await Users.getByUsername(username)) return res.error(409, "User already exists");
 
     const user = await Users.create({
         username,

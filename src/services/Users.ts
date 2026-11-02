@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Service } from "../../lib/service/Service";
+import { AsyncService } from "../../lib/service/AsyncService";
 
 type User = {
     id: number;
@@ -12,7 +12,7 @@ type User = {
     updatedAt: number;
 };
 
-class UsersService extends Service<User> {
+class UsersService extends AsyncService<User> {
     #PASSWORD_HASH_SALT_ROUNDS = 12;
 
     constructor() {
@@ -39,16 +39,16 @@ class UsersService extends Service<User> {
         return jwt.sign({ id: user.id }, process.env.JWT_SECRET!);
     }
 
-    get(id: number) {
-        return this._get(id);
+    async get(id: number) {
+        return await this._get(id);
     }
 
-    getByUsername(username: string) {
-        return this._values().find((e) => e.username === username);
+    async getByUsername(username: string) {
+        return await this._find({ username });
     }
 
-    getAll() {
-        return this._values();
+    async getAll() {
+        return await this._values();
     }
 
     async create(data: {
@@ -61,7 +61,7 @@ class UsersService extends Service<User> {
 
         data.password = await this.getHashedPassword(data.password);
 
-        return this._insert(id, {
+        return await this._insert(id, {
             ...data,
             id,
             createdAt: new Date().getTime(),
@@ -80,17 +80,17 @@ class UsersService extends Service<User> {
     ) {
         if (data.password) data.password = await this.getHashedPassword(data.password);
 
-        return this._update(
+        return await this._update(
             id,
-            this._overwrite(id, {
+            await this._overwrite(id, {
                 ...data,
                 updatedAt: new Date().getTime(),
             })
         );
     }
 
-    delete(id: number) {
-        this._delete(id);
+    async delete(id: number) {
+        await this._delete(id);
     }
 }
 

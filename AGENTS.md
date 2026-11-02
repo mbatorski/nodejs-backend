@@ -30,14 +30,10 @@ export default new Route()
 
 ## Services (`src/services/`)
 
-- Every DB-backed service has its **own type** in the same file and extends `Service<ThatType>`.
+- Every DB-backed service has its **own type** in the same file and extends `Service<ThatType>` or `AsyncService<ThatType>`.
 - Export a singleton: `const X = new XService(); export default X;`.
-- Register / load in root `index.ts` inside `Db.onConnect` (especially if it uses the DB):
-
-```ts
-await Users.load();
-```
-
+- `Service`: in-memory cache. Call `await X.load()` in `Db.onConnect` before serving.
+- `AsyncService`: no cache — every get/update/delete hits the DB and returns a `Promise`. Always `await` fetches (`get`, `update`, `_has`, …). No `load()` needed.
 - Do not put route/HTTP concerns in services.
 
 ## Layout

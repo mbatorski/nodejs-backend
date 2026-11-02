@@ -17,9 +17,8 @@ import RouteDataParser from "./RouteDataParser";
 import JsonWebToken from "./JsonWebToken";
 import { log as logRequest } from "../utils/Logger";
 import Response from "../interfaces/Response";
-import Route from "../interfaces/Route";
+import Route, { type ServiceObjectFetch } from "../interfaces/Route";
 import ParamRoute from "../interfaces/ParamRoute";
-import { Service } from "../../service/Service";
 
 dotenv.config();
 
@@ -95,7 +94,7 @@ export default class RouteServer {
 
                 const isGet = route._method === "get";
 
-                return (
+                return async (
                     req: Request,
                     res: ExpressResponse,
                     body: any,
@@ -106,7 +105,7 @@ export default class RouteServer {
                 ) => {
                     const identifier = (isGet ? query : body)[service._identifier];
 
-                    if (!service._has(identifier)) {
+                    if (!(await service._has(identifier))) {
                         return res.status(404).json({
                             error: `${service.constructor.name} - object not found`,
                         });
@@ -115,7 +114,7 @@ export default class RouteServer {
                     route._executor.call(
                         {
                             jwtTokenData,
-                            serviceObject: service._get(identifier),
+                            serviceObject: await service._get(identifier),
                         },
                         new Response(res),
                         body,
@@ -344,7 +343,7 @@ export default class RouteServer {
         }
     }
 
-    useServices(services: Record<string, Service>) {
+    useServices(services: Record<string, ServiceObjectFetch>) {
         if (!this.#endpointsPrefix) {
             console.log(`${ErrorPrefix}Endpoints prefix is not defined`);
             return this;
@@ -355,26 +354,26 @@ export default class RouteServer {
             const routes: Record<string, Route> = {
                 get: new Route()
                     .setQuery({ [service._identifier]: { type: identifierType as any } })
-                    .get(async (res, _, query) => {
+                    .get(async function(res, _, query) {
                         const id = query[service._identifier];
 
-                        if (!service._has(id))
+                        if (!(await service._has(id)))
                             return res.error(404, `${service.constructor.name} not found`);
 
-                        res.send(service._get(id));
+                        res.send(await service._get(id));
                     }),
-                "get-all": new Route().setQuery({}).get(async (res) => {
-                    res.send(service._values());
+                "get-all": new Route().setQuery({}).get(async function(res) {
+                    res.send(await service._values());
                 }),
                 delete: new Route()
                     .setBody({ [service._identifier]: { type: identifierType as any } })
-                    .delete(async (res, body) => {
+                    .delete(async function(res, body) {
                         const id = body[service._identifier];
 
-                        if (!service._has(id))
+                        if (!(await service._has(id)))
                             return res.error(404, `${service.constructor.name} not found`);
 
-                        service._delete(id);
+                        await service._delete(id);
 
                         res.sendStatus(200);
                     }),

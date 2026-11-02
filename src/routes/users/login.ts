@@ -12,7 +12,7 @@ export default new Route()
 .post(async function(res, body) {
     const { username, password } = body;
 
-    const user = Users.getByUsername(username);
+    const user = await Users.getByUsername(username);
 
     if (!user) return res.error(404, "User not found");
 
