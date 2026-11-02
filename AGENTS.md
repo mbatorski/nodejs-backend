@@ -35,6 +35,7 @@ export default new Route()
 - `Service`: in-memory cache. Call `await X.load()` in `Db.onConnect` before serving.
 - `AsyncService`: no cache — every get/update/delete hits the DB and returns a `Promise`. Always `await` fetches (`get`, `update`, `_has`, …). No `load()` needed.
 - Do not put route/HTTP concerns in services.
+- No standalone functions in service files — only methods on the Service class (any access modifier).
 
 ## Layout
 
